@@ -128,7 +128,7 @@ run;
 
 	/*Modification des types de données*/
 	
-* Avoir le type des variables;
+* aAvoir le type des variables;
 proc contents
      data = XL_2017.XL_global
           noprint
