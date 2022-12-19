@@ -128,7 +128,7 @@ run;
 
 	/*Modification des types de données*/
 	
-* aAvoir le type des variables;
+* Avoir le type des variables;
 proc contents
      data = XL_2017.XL_global
           noprint
@@ -137,6 +137,7 @@ run; *Toutes les variables sont en varchar (type 2);
 
 proc sql;
      * On créer une liste qui va contenir les noms actuels des colonnes;
+     
      select name
      into :numerics
           separated by ' '
@@ -200,4 +201,38 @@ proc means data = XL_2017.XL_global2 n nmiss;
 run;
 
 	/*Détection des outliers*/
-	
+
+proc univariate data=XL_2017.XL_global2 robustscale plot;
+var CI_A11;
+run; 
+
+/*-------------------------------------*/
+/*------------ QUESTION 3 -------------*/
+/*-------------------------------------*/
+
+
+PROC TABULATE DATA = XL_2017.XL_global2 ;
+   CLASS annee finess ;
+   TABLE (annee),
+         (finess)*
+         (N) ;
+RUN ;
+
+/*Analyse des établissements qui sont apparus : aucun*/
+PROC SQL;
+SELECT finess
+FROM XL_2017.XL_global2
+WHERE annee = 2019
+AND finess not in(SELECT finess FROM XL_2017.XL_global2 WHERE annee = 2017 OR annee = 2018);
+QUIT;
+
+
+/*-------------------------------------*/
+/*------------ QUESTION 4 -------------*/
+/*-------------------------------------*/
+
+
+
+
+
+		
