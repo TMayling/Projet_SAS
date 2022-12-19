@@ -65,7 +65,7 @@ PROC TRANSPOSE data=XL_2019."lits et places"n out=XL_2019."lits et places t"n;
 RUN;
 
 		/*On enlève les colonnes inutiles*/
-		
+/*Prendre le code de Quentin qui est plus propre*/	
 			/*2017*/
 data XL_2017."lits et places t"n;
   set XL_2017."lits et places t"n (drop=_NAME_ _LABEL_:);
@@ -189,7 +189,6 @@ data XL_2017.XL_global2;
      do i = 1 to dim(nums);
           nums[i] = input(chars[i], BEST32.);
      end;
-
 *On drop les colonnes avant la conversion;
      drop i &characters;
 run;
@@ -231,7 +230,140 @@ QUIT;
 /*------------ QUESTION 4 -------------*/
 /*-------------------------------------*/
 
+/*Est-ce-que des établissements ont changé de taille: aucun*/
 
+PROC SQL;
+SELECT finess
+FROM XL_2017.XL_global2
+WHERE annee = 2019
+AND taille_MCO not in(SELECT taille_MCO FROM XL_2017.XL_global2 WHERE annee = 2017 OR annee = 2018)
+AND taille_M not in(SELECT taille_M FROM XL_2017.XL_global2 WHERE annee = 2017 OR annee = 2018)
+AND taille_C not in(SELECT taille_C FROM XL_2017.XL_global2 WHERE annee = 2017 OR annee = 2018)
+AND taille_O not in(SELECT taille_O FROM XL_2017.XL_global2 WHERE annee = 2017 OR annee = 2018);
+QUIT;
+
+
+/*-------------------------------------*/
+/*------------ QUESTION 5 -------------*/
+/*-------------------------------------*/
+
+
+proc sql; 
+select taille_M,min(CI_AC1) as min_lits, max(CI_AC1) as max_lits
+from XL_2017.XL_global2
+group by taille_M;
+quit;
+
+
+
+/*-------------------------------------*/
+/*------------ QUESTION 6 -------------*/
+/*-------------------------------------*/
+
+/*Code Quentin*/
+
+data XL_2017.XL_global2;
+set XL_2017.XL_global2;
+CI_ACtot = sum(CI_AC1, CI_AC6, CI_AC8);
+run;
+
+
+PROC TABULATE DATA = XL_2017.XL_global2;;
+   class cat annee;
+   Var CI_AC1 CI_AC6 CI_AC8 CI_ACtot;
+   tables cat='',annee=''*(CI_AC1='Nb_lits_M'*(sum='') CI_AC6='Nb_lits_C'*(sum='') CI_AC8='Nb_lits_O'*(sum='') CI_ACtot='Total'*(sum=''));
+RUN;
+
+
+/*-------------------------------------*/
+/*------------ QUESTION 7 -------------*/
+/*-------------------------------------*/
+
+/*Les départements d'outre-mer sont tous regroupés dans "97"*/
+/*Dep 98?*/
+
+/*Résultat en Proc SAS*/
+
+data XL_2017.XL_global2;
+set XL_2017.XL_global2;
+dep = substr(finess, 1, 2) ;
+run;
+
+
+PROC TABULATE DATA = XL_2017.XL_global2;
+   class cat dep finess;
+   tables dep='',cat=''*N='Nb Etab' N='Total';   /*VERIFIER LES DATA*/
+RUN;
+
+/*Résultat en SQL*/
+
+PROC SQL;
+select substr(finess,1,2) as dep,
+count(distinct finess) as nb_etab,
+cat
+from XL_2017.XL_global2
+group by dep, cat;
+QUIT;
+
+
+/*-------------------------------------*/
+/*------------ QUESTION 8 -------------*/
+/*-------------------------------------*/
+
+PROC SQL;
+select CI_E6 as niveau_maternite,
+cat,
+sum(CI_A11) as nb_accouchement,
+sum(CI_AC8) as nb_lits_obstetrique,
+min(CI_A11) as min
+from XL_2017.XL_global2;
+group by cat, niveau_maternite;
+QUIT;
+
+PROC SQL OUTOBS=5;
+select finess,
+sum(CI_A11) as nb_accouchement,
+sum(CI_AC8) as nb_lits_obstetrique
+from XL_2017.XL_global2;
+group by finess
+order by nb_accouchement desc, nb_lits_obstetrique desc;
+QUIT;   /*VERIFS*/
+
+/*-------------------------------------*/
+/*------------ QUESTION 9 -------------*/
+/*-------------------------------------*/
+
+PROC SQL;
+select substr(finess,1,2) as dep,
+sum(CI_A11) as nb_accouchement,
+min(CI_A11) as min
+sum(CI_AC8) as nb_lits_obstetrique
+from XL_2017.XL_global2;
+group by dep
+order by nb_accouchement desc, nb_lits_obstetrique desc;
+QUIT;
+
+
+
+/*-------------------------------------*/
+/*------------ QUESTION 10 -------------*/
+/*-------------------------------------*/
+
+
+
+
+
+/*-------------------------------------*/
+/*------------ QUESTION 11 -------------*/
+/*-------------------------------------*/
+
+
+
+
+
+/*-------------------------------------*/
+/*------------ QUESTION 12 -------------*/
+/*-------------------------------------*/
 
 
 
