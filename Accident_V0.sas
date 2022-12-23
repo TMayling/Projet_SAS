@@ -39,6 +39,25 @@ proc import out=Projet.veh
 run;
 
 /*Première jointure au niveau des accidents*/
+	/*Proc sort pour faire les jointures*/
+	
+PROC SORT data = Projet.carac;
+by Num_Acc;
+RUN;
+
+PROC SORT data = Projet.lieux;
+by Num_Acc;
+RUN;
+
+PROC SORT data = Projet.veh;
+by Num_Acc id_vehicule;
+RUN;
+
+PROC SORT data = Projet.usagers;
+by Num_Acc id_vehicule;
+RUN;
+
+
 DATA Projet.data_prep; 
   Merge Projet.carac Projet.lieux Projet.veh;
   BY Num_Acc; 
@@ -52,3 +71,10 @@ RUN;
 
 /*Replace -1 par .*/
 
+data Projet.data_global;
+set Projet.data_global;
+array Var _CHARACTER_;
+            do over Var;
+            if Var=-1 then Var=.;
+            end;
+run ;
