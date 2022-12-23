@@ -78,3 +78,72 @@ array Var _CHARACTER_;
             if Var=-1 then Var=.;
             end;
 run ;
+
+/* 1-Stats descriptives */
+/* 1.1-Départements avec le plus d'accidents*/
+PROC SQL;
+SELECT count(distinct Num_acc) as nb_accidents,
+dep
+from Projet.data_global
+group by dep
+order by nb_accidents desc;
+QUIT;
+
+/* 1.2-Plus d'accidents en agglomération que hors agglomération*/
+PROC SQL;
+SELECT count(distinct Num_acc) as nb_accidents,
+agg
+from Projet.data_global
+group by agg
+order by nb_accidents desc;
+QUIT;
+
+/* 1.3-Mois avec le plus d'accidents*/
+PROC SQL;
+SELECT count(distinct Num_acc) as nb_accidents,
+mois
+from Projet.data_global
+group by mois
+order by nb_accidents desc;
+QUIT;
+
+/* 1.4-Communes avec le plus d'accidents*/
+PROC SQL OUTOBS=10;
+SELECT count(distinct Num_acc) as nb_accidents,
+com
+from Projet.data_global
+group by com
+order by nb_accidents desc;
+QUIT;
+
+/* 1.5-Nombre d'accidents, de véhicules et de victimes recensés*/
+PROC SQL;
+SELECT count(distinct Num_acc) as nb_accidents,
+count(distinct id_vehicule) as nb_vehicules,
+count(id_vehicule) as nb_victimes
+from Projet.data_global;
+QUIT;
+
+/* 1.6-Nombre d'accidents par voiture*/
+PROC SQL OUTOBS=10;
+SELECT count(distinct Num_acc) as nb_accidents,
+catu
+from Projet.data_global
+group by catu
+order by nb_accidents desc;
+QUIT;
+
+/*2-Statistiques inférentielles*/
+/*2.1-Décomposition des gravités de blessure selon la catégorie de victime (en %)*/
+Data Q2_1;
+Set Projet.data_global(rename=(Num_acc=Num_acc_old));
+Num_acc =  INPUT(Num_acc_old,f8.);
+drop Num_acc_old;
+RUN;
+
+PROC TABULATE DATA = Q2_1;
+   class catu grav;
+   Var Num_acc;
+   tables catu='Catégorie usager',grav='gravité'*(Num_acc=''*(ROWPCTN=''));
+RUN;
+
