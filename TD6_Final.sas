@@ -121,7 +121,7 @@ DATA XL_2019.data_global_prep;
   set XL_2017.data2017 XL_2018.data2018 XL_2019.data2019;
 RUN;
 
-	/*Modification des types de données*/
+	/* Modification des types de données, aidés par cf. Bibliographie du rapport */
 	
 * Récupérer le type de chaque variables et leurs noms;
 proc contents
@@ -222,6 +222,7 @@ PROC TABULATE DATA = XL_2019.data_global ;
 RUN ;
 
 /*Analyse des établissements qui sont apparus : aucun*/
+
 PROC SQL;
 SELECT finess
 FROM XL_2019.data_global
@@ -236,15 +237,30 @@ QUIT;
 
 /*Est-ce-que des établissements ont changé de taille: aucun*/
 
-PROC SQL;
-SELECT finess
-FROM XL_2019.data_global
-WHERE year = 2019
-AND taille_MCO not in(SELECT taille_MCO FROM XL_2019.data_global WHERE year = 2017 OR year = 2018)
-AND taille_M not in(SELECT taille_M FROM XL_2019.data_global WHERE year = 2017 OR year = 2018)
-AND taille_C not in(SELECT taille_C FROM XL_2019.data_global WHERE year = 2017 OR year = 2018)
-AND taille_O not in(SELECT taille_O FROM XL_2019.data_global WHERE year = 2017 OR year = 2018);
-QUIT;
+proc sql; 
+    select finess,
+    /*On regarde combien de modalités on trouve au sein de chaque variable*/
+        count(distinct taille_MCO) as distinct_MCO,
+        count(distinct taille_M) as distinct_M,
+        count(distinct taille_C) as distinct_C,
+        count(distinct taille_O) as distinct_O,
+    /*Si on obtient une valeur > 1, l'établissement à changé au moins une fois de taille au cours des trois années*/
+        max(count(distinct taille_MCO),count(distinct taille_M),count(distinct taille_C),count(distinct taille_O)) as max_code_different
+    from XL_2019.data_global
+    group by finess
+    order by max_code_different asc;
+quit;
+
+/*Est-ce-que des établissements ont changé d'activité : oui */
+
+proc sql; 
+select finess, 
+year, 
+sum(CI_A1+ CI_A2+ CI_A3+ CI_A4+ CI_A5+ CI_A6+ CI_A7+ CI_A8+ CI_A9+ CI_A10+ CI_A11+ CI_A12+ CI_A13+ CI_A14+ CI_A15) as total_activite
+from XL_2019.data_global
+group by year, finess
+order by finess;
+quit;
 
 
 /*-------------------------------------*/
@@ -521,4 +537,4 @@ PROC SQL;
 SELECT dep, year, avg(score_qual) as score_qual
 from XL_2019.data_acc
 group by dep, year;
-QUIT;
+QUIT;	
