@@ -11,7 +11,7 @@ LIBNAME XL_2017 XLSX '/home/u62478841/TD6/Hospi_2017.xlsx';
 LIBNAME XL_2018 XLSX '/home/u62478841/TD6/Hospi_2018.xlsx';
 LIBNAME XL_2019 XLSX '/home/u62478841/TD6/Hospi_2019.xlsx';
 
-/*Supprimer les librairies - osef on l'enlevera avant de rendre*/
+/*Supprimer les librairies*/
 /*libname XL_2017 clear;
 libname XL_2018 clear;
 libname XL_2019 clear;*/
