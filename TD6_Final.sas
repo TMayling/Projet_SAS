@@ -491,11 +491,17 @@ group by finess
 order by diff desc;
 QUIT;
 
-/*Etude de l'établissement avec la plus grande différence*/
+/*Etude d'établissements avec les plus grandes différences*/
 PROC SQL;
-SELECT * 
+SELECT finess,rs,year,CI_AC8,CI_A11,CI_ACtot,Lit_par_acc,Temps_plein_par_acc,score_qual
 FROM XL_2019.data_acc
 WHERE finess = "970107249";
+QUIT;
+
+PROC SQL;
+SELECT finess,rs,year,CI_AC8,CI_A11,CI_ACtot,Lit_par_acc,Temps_plein_par_acc,score_qual 
+FROM XL_2019.data_acc
+WHERE finess = "970100178";
 QUIT;
 
 
