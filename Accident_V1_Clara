@@ -154,29 +154,30 @@ proc sort data=Projet.data_global out=Projet.data_global nodupkey;
     by _all_;
 run;
 
-
 	/*Détection des outliers*/
 proc univariate data=Projet.data_global robustscale plot;
 run;
 
+/*Analyse d'une valeur extrême pour la variable lartpc*/
+proc sql;
+select *
+from Projet.data_global
+where lartpc = 40;
+quit;
 
 /* ----------------------------------------- */
 /* ---- PARTIE 2 : ANALYSE DESCRIPTIVE ----  */
 /* ----------------------------------------- */
 
-/* ----------------------------------------- */
-/* --- PARTIE 3 : ANALYSE INFERENTIELLE ---  */
-/* ----------------------------------------- */
-
-/* ----------------------------------------- */
-/* ------- PARTIE 4 : CATEGORISATION ------  */
-/* ----------------------------------------- */
+/* --- 1. Nombre d'accidents par département et par localisation ---*/
+/* PROC SAS */
 
 
+				/*A faire : tableau croisé, cf TD6 pour modèle*/
 
 
-/* 1-Stats descriptives */
-/* 1.1-Départements avec le plus d'accidents*/
+/* PROC SQL */
+/* Départements avec le plus d'accidents */
 PROC SQL;
 SELECT count(distinct Num_acc) as nb_accidents,
 dep
@@ -185,7 +186,7 @@ group by dep
 order by nb_accidents desc;
 QUIT;
 
-/* 1.2-Plus d'accidents en agglomération que hors agglomération*/
+/* Plus d'accidents en agglomération que hors agglomération */
 PROC SQL;
 SELECT count(distinct Num_acc) as nb_accidents,
 agg
@@ -194,43 +195,38 @@ group by agg
 order by nb_accidents desc;
 QUIT;
 
-/* 1.3-Mois avec le plus d'accidents*/
-PROC SQL;
-SELECT count(distinct Num_acc) as nb_accidents,
-mois
-from Projet.data_global
-group by mois
-order by nb_accidents desc;
-QUIT;
 
-/* 1.4-Communes avec le plus d'accidents*/
-PROC SQL OUTOBS=10;
-SELECT count(distinct Num_acc) as nb_accidents,
-com
-from Projet.data_global
-group by com
-order by nb_accidents desc;
-QUIT;
+/* --- 2. Est-ce-que les conditions d'environnement ont un impact sur le nombre d'accidents ? --- */
 
-/* 1.5-Nombre d'accidents, de véhicules et de victimes recensés*/
-PROC SQL;
-SELECT count(distinct Num_acc) as nb_accidents,
-count(distinct id_vehicule) as nb_vehicules,
-count(id_vehicule) as nb_victimes
-from Projet.data_global;
-QUIT;
+	/* A faire : prendre les variables : lum, atm, surf
+	regarder le nombre d'accident pour chaque modalité et faire une analyse rapide
+	trier par nombre décroissant d'accident pour voir les modalités qui ressortent le plus*/
 
-/* 1.6-Nombre d'accidents par voiture*/
-PROC SQL OUTOBS=10;
-SELECT count(distinct Num_acc) as nb_accidents,
-catu
-from Projet.data_global
-group by catu
-order by nb_accidents desc;
-QUIT;
+	/*A faire en proc SAS ou proc SQL selon préférence*/
 
-/*2-Statistiques inférentielles*/
-/*2.1-Décomposition des gravités de blessure selon la catégorie de victime (en %)*/
+
+/* --- 3. Représenter graphiquement les lieux où se sont produits les accidents ---*/
+
+	/* A faire : Utiliser les cartes sur SAS
+	On dispose de deux champs : lat (latitude) et Long (longitude) pour les coordonnées gps
+	Essayer de voir si on peut utiliser la carte SAS pour représenter le nombre d'accident
+	
+	Si c'est pas possible, on zappe la question. On en a déjà beaucoup donc c'est pas grave
+	
+	Pour utiliser les cartes,s'aider de l'onglet Tâche et Utilitaire > Tâches > Carte */
+
+/* ----------------------------------------- */
+/* --- PARTIE 3 : ANALYSE INFERENTIELLE ---  */
+/* ----------------------------------------- */
+
+/* 1. --- Test d'indépendance entre deux variables --- */
+
+/* 2. --- ANOVA --- */
+
+
+/* Analyse SQL
+Décomposition des gravités de blessure selon la catégorie de victime (en %)
+*/
 Data Q2_1;
 Set Projet.data_global(rename=(Num_acc=Num_acc_old));
 Num_acc =  INPUT(Num_acc_old,f8.);
@@ -242,3 +238,51 @@ PROC TABULATE DATA = Q2_1;
    Var Num_acc;
    tables catu='Catégorie usager',grav='gravité'*(Num_acc=''*(ROWPCTN=''));
 RUN;
+
+
+
+
+/* ----------------------------------------- */
+/* ------- PARTIE 4 : CATEGORISATION ------  */
+/* ----------------------------------------- */
+
+/* ----------------------------------------- */
+/* ------ PARTIE 5 : Autres analyses ------  */
+/* ----------------------------------------- */
+
+
+/* --- Mois avec le plus d'accidents --- */
+PROC SQL;
+SELECT count(distinct Num_acc) as nb_accidents,
+mois
+from Projet.data_global
+group by mois
+order by nb_accidents desc;
+QUIT;
+
+/* --- Communes avec le plus d'accidents --- */
+PROC SQL OUTOBS=10;
+SELECT count(distinct Num_acc) as nb_accidents,
+com
+from Projet.data_global
+group by com
+order by nb_accidents desc;
+QUIT;
+
+/* --- Nombre d'accidents, de véhicules et de victimes recensés ---*/
+PROC SQL;
+SELECT count(distinct Num_acc) as nb_accidents,
+count(distinct id_vehicule) as nb_vehicules,
+count(id_vehicule) as nb_victimes
+from Projet.data_global;
+QUIT;
+
+/* --- Nombre d'accidents par voiture --- */
+PROC SQL OUTOBS=10;
+SELECT count(distinct Num_acc) as nb_accidents,
+catu
+from Projet.data_global
+group by catu
+order by nb_accidents desc;
+QUIT;
+
