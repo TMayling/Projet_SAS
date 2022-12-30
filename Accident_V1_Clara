@@ -99,21 +99,21 @@ proc sql /* noprint */;
      into :numerics
           separated by ' '
      from vars1
-     where name in("lat","Long","nbv","pr1","lartpc","larrout","vma","occutc");
+     where name in("lat","long","nbv","pr1","lartpc","larrout","vma","occutc");
 
 * On créer une liste qui va contenir les noms actuels des colonnes avec un C en plus pour pouvoir remplacer par leurs noms de base;
      select trim(name) || 'C'
      into :characters
           separated by ' '
      from vars1
-     where name in("lat","Long","nbv","pr1","lartpc","larrout","vma","occutc");
+     where name in("lat","long","nbv","pr1","lartpc","larrout","vma","occutc");
 
      * On créer une liste nom_colonne = nom_colonne_C;
      select cats(name, ' = ' , name, 'C')
      into :conversions
           separated by ' '
      from vars1
-     where name in("lat","Long","nbv","pr1","lartpc","larrout","vma","occutc");
+     where name in("lat","long","nbv","pr1","lartpc","larrout","vma","occutc");
 
      quit;
 
@@ -219,9 +219,71 @@ QUIT;
 /* --- PARTIE 3 : ANALYSE INFERENTIELLE ---  */
 /* ----------------------------------------- */
 
-/* 1. --- Test d'indépendance entre deux variables --- */
+/* 1. --- Test d'indépendance entre deux variables qualitatives --- */
+
+/*    Var1 : catu (catégorie usager 1: Conducteur, 2: Passager, 3: Piéton)
+	  Var2 : grav (gravité de l'accident 1: Indemne, 2: Tué, 3: Blessé Hospitalisé, 4: Bléssé Léger)
+
+  Nous allons réaliser un test du Khi-deux avec les hypothèses suivantes :
+	H0 : Il existe un lien entre la catégorie de l'usager et la gravité de l'accident
+	H1 : Il n'existe pas de lien
+
+    Tout d'abord, on catégorise nos données pour qu'elles aient le même nombre de modalités.
+On va regrouper la modalité 1 et 4 de la variable grav dans un groupe "Accident léger", et les
+modalités 2 et 3 dans "Accident grave". De même, nous allons exclure les piétions de l'analyse. 
+
+*/
+proc sql;
+Select 
+case when catu = '1' then 'Conducteur'
+     when catu = '2' then 'Passager'
+end as catu, 
+
+case when grav = '1' then 'Accident leger'
+          when grav = '4' then 'Accident leger' 
+     	  when grav = '2' then 'Accident grave' 
+     	  when grav = '3' then 'Accident grave' 
+end as grav_cate,
+count(*) as nb_accident
+
+from Projet.data_global
+where catu in("1","2")
+and grav in("1","2","3","4")
+group by catu, grav_cate
+order by grav_cate;
+quit;
+
+data Projet.data_khideux;
+	 set Projet.data_global;
+	 
+	 KEEP Num_Acc id_vehicule catu_nom cate_grav;
+
+	 IF grav = '1' THEN cate_grav = 'Accident leger';
+	 ELSE IF grav = '4' THEN cate_grav = 'Accident leger';
+	 ELSE IF grav = '2' THEN cate_grav = 'Accident grave';
+	 ELSE IF grav = '3' THEN cate_grav = 'Accident grave';
+	 
+	 IF catu = '1' THEN catu_nom = 'Conducteur';
+	 ELSE IF catu = '2' THEN catu_nom = 'Passager';
+	 
+	 WHERE (grav = '1' OR grav = '2' OR grav = '3' OR grav = '4')
+	 AND (catu = '1' OR catu = '2');
+	 
+run;
+
+proc freq data = Projet.data_khideux;
+tables catu*cate_grav /chisq ;
+run;
+
+
+
+
 
 /* 2. --- ANOVA --- */
+/*Création d'un dataframe avec uniquement les données concernées*/
+
+
+
 
 
 /* Analyse SQL
@@ -249,7 +311,6 @@ RUN;
 /* ----------------------------------------- */
 /* ------ PARTIE 5 : Autres analyses ------  */
 /* ----------------------------------------- */
-
 
 /* --- Mois avec le plus d'accidents --- */
 PROC SQL;
