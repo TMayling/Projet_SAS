@@ -1,0 +1,244 @@
+/* ----------------------------------------- */
+/* -- PARTIE 1 : PREPARATION DES DONNEES --  */
+/* ----------------------------------------- */
+
+/* 1. ---- Création de la librairie ----*/
+
+options validvarname=any; /*Evite les erreurs de conversions dans les noms de variables*/
+LIBNAME Projet '/home/u62478841/Projet_Accident';
+
+/* ---- Import des CSV ----*/
+
+proc import out=Projet.carac
+    datafile='/home/u62478841/Projet_Accident/carcteristiques-2021.csv'
+    dbms=csv
+    replace;
+    delimiter=";";
+    getnames=YES;
+run;
+
+proc import out=Projet.lieux
+    datafile='/home/u62478841/Projet_Accident/lieux-2021.csv'
+    dbms=csv
+    replace;
+    delimiter=";";
+    getnames=YES;
+run;
+
+proc import out=Projet.usagers
+    datafile='/home/u62478841/Projet_Accident/usagers-2021.csv'
+    dbms=csv
+    replace;
+    delimiter=";";
+    getnames=YES;
+run;
+
+proc import out=Projet.veh
+    datafile='/home/u62478841/Projet_Accident/vehicules-2021.csv'
+    dbms=csv
+    replace;
+    delimiter=";";
+    getnames=YES;
+run;
+
+/* 2. --- Jointure des fichiers --- */
+	
+	/*Proc sort pour faire les jointures*/
+	
+PROC SORT data = Projet.carac;
+by Num_Acc;
+RUN;
+
+PROC SORT data = Projet.lieux;
+by Num_Acc;
+RUN;
+
+PROC SORT data = Projet.veh;
+by Num_Acc id_vehicule; /*On ajoute l'id_vehicule car un accident peut concerner plusieurs véhicules */ 
+RUN;
+
+PROC SORT data = Projet.usagers;
+by Num_Acc id_vehicule;
+RUN;
+
+	/*Jointures*/
+	
+DATA Projet.data_prep; 
+  Merge Projet.carac Projet.lieux Projet.veh;
+  BY Num_Acc; 
+RUN;
+
+DATA Projet.data_global;
+	Merge Projet.data_prep Projet.usagers;
+	BY Num_Acc id_vehicule;
+RUN;
+
+/* 3. --- Traitement des données ---*/
+
+	/* Remplacer les -1 par des null */
+
+data Projet.data_global;
+set Projet.data_global;
+array Var _CHARACTER_; /*On prend toutes les variables en varchar*/
+            do over Var;
+            if Var=-1 then Var=.;
+            end;
+run ;
+
+	/* Changement des types */
+
+proc contents
+     data = Projet.data_global
+          noprint
+     out = vars1 (keep = name type);
+run;
+
+proc sql /* noprint */;
+
+     select name
+     into :numerics
+          separated by ' '
+     from vars1
+     where name in("lat","Long","nbv","pr1","lartpc","larrout","vma","occutc");
+
+* On créer une liste qui va contenir les noms actuels des colonnes avec un C en plus pour pouvoir remplacer par leurs noms de base;
+     select trim(name) || 'C'
+     into :characters
+          separated by ' '
+     from vars1
+     where name in("lat","Long","nbv","pr1","lartpc","larrout","vma","occutc");
+
+     * On créer une liste nom_colonne = nom_colonne_C;
+     select cats(name, ' = ' , name, 'C')
+     into :conversions
+          separated by ' '
+     from vars1
+     where name in("lat","Long","nbv","pr1","lartpc","larrout","vma","occutc");
+
+     quit;
+
+* On remplace les virgules par des points pour éviter les soucis de conversions;
+data Projet.data_global;
+	 set Projet.data_global;
+	 
+	 array nums[*] &numerics;
+
+     do i = 1 to dim(nums);
+          nums[i] = tranwrd(nums[i], ',', '.');
+     end;
+run;
+
+* Au lieu d'écrire nom_colonne = nom_colonne_C pour toutes les variables, on utilise notre liste créée précédemment;
+data Projet.data_global;
+	 set Projet.data_global;
+     rename &conversions;
+run;
+
+* On change les types;
+data Projet.data_global;
+     set Projet.data_global;
+
+     array nums[*] &numerics;
+     array chars[*] &characters;
+
+     do i = 1 to dim(nums);
+          nums[i] = input(chars[i], BEST32.);
+     end;
+*On drop les colonnes avant la conversion;
+     drop i &characters;
+run;
+
+	/*Suppression des doublons*/
+
+proc sort data=Projet.data_global out=Projet.data_global nodupkey;
+    by _all_;
+run;
+
+
+	/*Détection des outliers*/
+proc univariate data=Projet.data_global robustscale plot;
+run;
+
+
+/* ----------------------------------------- */
+/* ---- PARTIE 2 : ANALYSE DESCRIPTIVE ----  */
+/* ----------------------------------------- */
+
+/* ----------------------------------------- */
+/* --- PARTIE 3 : ANALYSE INFERENTIELLE ---  */
+/* ----------------------------------------- */
+
+/* ----------------------------------------- */
+/* ------- PARTIE 4 : CATEGORISATION ------  */
+/* ----------------------------------------- */
+
+
+
+
+/* 1-Stats descriptives */
+/* 1.1-Départements avec le plus d'accidents*/
+PROC SQL;
+SELECT count(distinct Num_acc) as nb_accidents,
+dep
+from Projet.data_global
+group by dep
+order by nb_accidents desc;
+QUIT;
+
+/* 1.2-Plus d'accidents en agglomération que hors agglomération*/
+PROC SQL;
+SELECT count(distinct Num_acc) as nb_accidents,
+agg
+from Projet.data_global
+group by agg
+order by nb_accidents desc;
+QUIT;
+
+/* 1.3-Mois avec le plus d'accidents*/
+PROC SQL;
+SELECT count(distinct Num_acc) as nb_accidents,
+mois
+from Projet.data_global
+group by mois
+order by nb_accidents desc;
+QUIT;
+
+/* 1.4-Communes avec le plus d'accidents*/
+PROC SQL OUTOBS=10;
+SELECT count(distinct Num_acc) as nb_accidents,
+com
+from Projet.data_global
+group by com
+order by nb_accidents desc;
+QUIT;
+
+/* 1.5-Nombre d'accidents, de véhicules et de victimes recensés*/
+PROC SQL;
+SELECT count(distinct Num_acc) as nb_accidents,
+count(distinct id_vehicule) as nb_vehicules,
+count(id_vehicule) as nb_victimes
+from Projet.data_global;
+QUIT;
+
+/* 1.6-Nombre d'accidents par voiture*/
+PROC SQL OUTOBS=10;
+SELECT count(distinct Num_acc) as nb_accidents,
+catu
+from Projet.data_global
+group by catu
+order by nb_accidents desc;
+QUIT;
+
+/*2-Statistiques inférentielles*/
+/*2.1-Décomposition des gravités de blessure selon la catégorie de victime (en %)*/
+Data Q2_1;
+Set Projet.data_global(rename=(Num_acc=Num_acc_old));
+Num_acc =  INPUT(Num_acc_old,f8.);
+drop Num_acc_old;
+RUN;
+
+PROC TABULATE DATA = Q2_1;
+   class catu grav;
+   Var Num_acc;
+   tables catu='Catégorie usager',grav='gravité'*(Num_acc=''*(ROWPCTN=''));
+RUN;
